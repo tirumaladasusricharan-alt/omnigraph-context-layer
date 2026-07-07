@@ -33,7 +33,7 @@ cd dashboard/backend
 pip install -r requirements.txt
 python main.py
 ```
-*(Runs on http://localhost:8000)*
+*(Runs on http://127.0.0.1:8000/docs)*
 
 **Start the React Frontend:**
 Open a new terminal window:
@@ -42,7 +42,7 @@ cd dashboard/frontend
 npm install
 npm run dev
 ```
-*(Runs on http://localhost:3000)*
+*(Runs on http://127.0.0.1:8000)*
 
 Navigate to the frontend URL to view the Glassmorphism styled "Review Surface" and "Knowledge Browser".
 
