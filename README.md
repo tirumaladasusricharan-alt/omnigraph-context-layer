@@ -159,19 +159,3 @@ omnigraph-context-layer/
 ├── package.json                       # Frontend dependencies
 └── tsconfig*.json / vite.config.ts    # Frontend build config
 ```
-
----
-
-## 🗺️ Roadmap Ideas
-
-- [ ] Add authentication to the review dashboard
-- [ ] Expand Cedar policies to cover write/merge permissions per role
-- [ ] Add CI workflow to run `run_tests.py` on every PR
-- [ ] Persist branch history for audit trail
-- [ ] Add more seed products/personas to stress-test graph traversal
-
----
-
-## 📄 License
-
-No license file currently specified — add one (MIT/Apache-2.0 recommended) before treating this as reusable beyond the POC.
