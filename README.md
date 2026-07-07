@@ -1,65 +1,177 @@
-# Analytos Org Context Layer POC
+# 🧠 Analytos Context Layer — Omnigraph POC
 
-This repository contains a working proof-of-concept for a governed, single-source-of-truth context layer for Analytos, built on top of the open-source Omnigraph engine.
+> A governed, single-source-of-truth **context layer** for Analytos, built on top of the open-source **Omnigraph** engine — with human-in-the-loop review, agent-scoped access control, and automated testing.
 
-## Architecture
-
-1. **Ingestion Pipeline (`ingest.py`)**: Uses `google-genai` (Gemini 2.5 Flash) and strict Pydantic structures to idempotently parse unstructured documents into structured graph mutations on isolated branches.
-2. **Review Dashboard (`dashboard/`)**: A Vite/React frontend and FastAPI backend where humans can review, diff, and merge branch changes into the main graph.
-3. **Agent MCP Access (`agents/`)**: Python agent scripts that simulate reading from the graph via an MCP tool layer securely governed by Cedar policy rules.
+![Python](https://img.shields.io/badge/Python-65.5%25-3776AB?logo=python&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-22.9%25-3178C6?logo=typescript&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS-10.6%25-1572B6?logo=css3&logoColor=white)
+![License](https://img.shields.io/badge/status-proof--of--concept-yellow)
 
 ---
 
-## 🚀 How to Run
+## 📖 Overview
+
+Most organizations scatter their product knowledge — feature specs, customer personas, incident threads, metrics — across docs, emails, and tribal memory. This makes it nearly impossible for AI agents (or new hires) to answer questions *accurately* and *safely*.
+
+**Analytos Context Layer** solves this by turning unstructured company knowledge into a **governed knowledge graph**:
+
+- Unstructured docs (`.md` files, email threads, product overviews) are parsed into structured graph nodes.
+- Every change lands on an isolated branch and goes through **human review** before merging into the main graph.
+- Downstream **AI agents** query the graph exclusively through an MCP tool layer, gated by **Cedar policy rules** — so an agent can be *scoped* to only see what it's allowed to see (e.g., a marketing agent can read `Product`/`Feature`/`Metric` nodes but is denied access to sensitive `EmailThread` nodes).
+
+This repo is a working, runnable proof-of-concept of that entire pipeline.
+
+---
+
+## 🏗️ Architecture
+
+```
+Unstructured Docs ──▶ Ingestion Pipeline ──▶ Isolated Branch ──▶ HITL Review Dashboard ──▶ Main Graph
+ (.md, email threads)      (ingest.py)          (graph mutation)      (React + FastAPI)         │
+                                                                                                   ▼
+                                                                              Agents ──▶ MCP Tool Layer ──▶ Cedar Policy Engine
+                                                                        (content_agent.py,           (mcp_config.json)   (policy.yaml)
+                                                                         gtm_agent.py)
+```
+
+| Component | Path | Responsibility |
+|---|---|---|
+| **Ingestion Pipeline** | `ingest.py` | Uses Google Gemini (`google-genai`) with strict **Pydantic** schemas to idempotently parse unstructured source documents into structured graph mutations on isolated branches. |
+| **Graph Schema** | `schema.pg`, `cluster.yaml` | Defines the property-graph schema and cluster topology for the Omnigraph backend. |
+| **Query Layer** | `queries.gq` | GraphQL-style queries used to read from the knowledge graph. |
+| **Review Dashboard (Backend)** | `dashboard/backend`, `main.py` | FastAPI service exposing endpoints to diff, review, and merge branch changes into the main graph. Runs at `http://127.0.0.1:8000/docs`. |
+| **Review Dashboard (Frontend)** | `dashboard/frontend`, `App.tsx`, `main.tsx`, `App.css`, `index.html` | Vite + React "Review Surface" and "Knowledge Browser" UI with a glassmorphism design. |
+| **Agent Layer** | `content_agent.py`, `gtm_agent.py` | Python agents that simulate real workflows — writing content, building GTM briefs — by reading the graph through the governed MCP layer. |
+| **Access Policy** | `policy.yaml`, `mcp_config.json` | Cedar-based policy rules that scope exactly which node types each agent role may read. |
+| **Test Harness** | `run_tests.py` | Unified script that exercises the full agent + security pipeline in one run. |
+| **Seed Data** | `icp-analytos.md`, `stockly-product-overview.md`, `inspectly-product-overview.md`, `email-01-stockly-pilot-thread.md`, `email-02-inspectly-medical-thread.md` | Mock organizational knowledge (ICPs, product docs, email threads) used to populate and demo the graph. |
+
+---
+
+## 🧩 Tech Stack
+
+**Backend**
+- Python 3
+- `fastapi==0.104.1`
+- `uvicorn==0.24.0`
+- `pydantic==2.5.2`
+- `google-genai` (Gemini 2.5 Flash) for document parsing
+- Cedar policy engine for access control
+
+**Frontend** (`analytos-dashboard`)
+- React `^18.2.0`
+- TypeScript `^5.0.2`
+- Vite `^4.4.5`
+
+---
+
+## 🚀 Getting Started
 
 ### 1. Prerequisites
-Ensure you have Node.js, Python 3, and your LLM API Key ready.
+
+- Node.js
+- Python 3
+- A Gemini API key
+
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
 
-### 2. Run the Unified Test Suite (Agents & Security)
-The easiest way to verify the entire agent pipeline and security gating is to run our unified test script:
+### 2. Run the unified test suite (agents + security)
+
+The fastest way to validate the whole pipeline — agent behavior *and* Cedar security gating — in one shot:
+
 ```bash
 python run_tests.py
 ```
-*This will execute the Content Agent (verifying it writes a blog with 3 metrics and gets explicitly denied access to emails by Cedar), followed by the GTM Agent (verifying it builds a brief based on correct personas).*
 
-### 3. Spin up the Dashboard & HITL Review
+This will:
+1. Run the **Content Agent** — verifying it writes a blog post citing 3 correct metrics, and confirming it is explicitly **denied** access to email threads by the Cedar policy.
+2. Run the **GTM Agent** — verifying it builds a GTM brief using the correct customer personas.
 
-**Start the FastAPI Backend:**
+### 3. Spin up the dashboard for human-in-the-loop review
+
+**Backend:**
 ```bash
 cd dashboard/backend
 pip install -r requirements.txt
 python main.py
 ```
-*(Runs on http://127.0.0.1:8000/docs)*
 
-**Start the React Frontend:**
-Open a new terminal window:
+
+**Frontend** (in a new terminal):
 ```bash
 cd dashboard/frontend
 npm install
 npm run dev
 ```
-*(Runs on http://127.0.0.1:8000)*
 
-Navigate to the frontend URL to view the Glassmorphism styled "Review Surface" and "Knowledge Browser".
+Navigate to the dev server URL to explore the **Review Surface** and **Knowledge Browser**.
 
 ---
 
-## 🧠 Evaluator Unseen Logical Questions
+## 🔐 Access Control Model
 
-On demo day, evaluators may ask agents complex, logical questions to ensure data extraction was accurate and access is properly scoped. Here are three expected examples based on our mock seed data:
+Agent access to the graph is not implicit — it's explicitly scoped per role via Cedar policy (`policy.yaml`), enforced at the MCP tool boundary. For example, the `content-agent` role is permitted to read only `Product`, `Feature`, and `Metric` nodes — it cannot traverse into `EmailThread` nodes, even ones logically connected to a product it can see.
 
-**Q1: "If an agent is tasked with writing a blog about Inspectly's time-saving benefits, what exact metric value and context should they cite?"**
-- **Expected Answer:** They should cite a **60% reduction** in Audit Prep Time, specifically dropping from 4 weeks down to 1.5 weeks.
-- **Node Trace:** Product (`inspectly`) ➔ Feature (`auto-audit-log`) ➔ Metric (`audit-prep-time`).
+---
 
-**Q2: "Which specific persona should a sales rep contact if they are selling the Auto-Restock feature, and what is the primary pain point they need to agitate?"**
-- **Expected Answer:** They should target the **Supply Chain Manager** at a Mid-Market Retail company. The primary pain point to agitate is that they are "exhausted by manual excel sheets" and face a "high risk of stockouts during peak seasons."
-- **Node Trace:** Product (`stockly`) ➔ ICPSegment (`retail-mid-market`) ➔ Persona (`supply-chain-manager`).
+## 🧠 Evaluator Q&A (Demo Reference)
 
-**Q3: "Can the Content Agent access details regarding the MedTech Corp Auto-Audit Log failure incident?"**
-- **Expected Answer:** **No.** The details of that incident are housed within an `EmailThread` node (specifically the Sev-1 compliance issue thread). The Cedar policy governing the `content-agent` role explicitly permits read access *only* to `Product`, `Feature`, and `Metric` nodes, resulting in a strict Access Denied response.
-- **Node Trace:** Attempt to access EmailThread (`email-02-inspectly-medical-thread`) ➔ Blocked by Cedar Policy evaluation.
+These are worked examples showing how the graph resolves multi-hop questions and enforces access control, based on the mock seed data:
+
+**Q1 — Metric lookup:** *"What metric should an agent cite when writing about Inspectly's time-saving benefits?"*
+→ A **60% reduction** in Audit Prep Time (4 weeks → 1.5 weeks).
+Trace: `Product(inspectly)` → `Feature(auto-audit-log)` → `Metric(audit-prep-time)`
+
+**Q2 — Persona targeting:** *"Who should a sales rep contact when selling the Auto-Restock feature, and what's the pain point?"*
+→ The **Supply Chain Manager** at a Mid-Market Retail company, whose core pain points are manual spreadsheet overload and stockout risk during peak seasons.
+Trace: `Product(stockly)` → `ICPSegment(retail-mid-market)` → `Persona(supply-chain-manager)`
+
+**Q3 — Access control:** *"Can the Content Agent see the MedTech Corp audit-log failure incident?"*
+→ **No.** That incident lives in an `EmailThread` node. The `content-agent` Cedar policy only grants read access to `Product`, `Feature`, and `Metric` nodes — so the request is blocked at policy evaluation, not at the application layer.
+Trace: attempted `EmailThread(email-02-inspectly-medical-thread)` access → blocked by Cedar.
+
+---
+
+## 📂 Repository Structure
+
+```
+omnigraph-context-layer/
+├── ingest.py                          # Document → graph mutation pipeline
+├── content_agent.py                   # Content-writing agent (scoped access)
+├── gtm_agent.py                       # GTM brief-building agent
+├── run_tests.py                       # Unified agent + security test runner
+├── main.py                            # FastAPI dashboard backend entrypoint
+├── App.tsx / main.tsx / App.css       # React dashboard frontend
+├── index.html                         # Frontend entry
+├── schema.pg                          # Property-graph schema
+├── cluster.yaml                       # Graph cluster config
+├── queries.gq                         # Graph query definitions
+├── policy.yaml                        # Cedar access-control policy
+├── mcp_config.json                    # MCP tool layer config
+├── icp-analytos.md                    # Seed: ICP definitions
+├── stockly-product-overview.md        # Seed: product doc
+├── inspectly-product-overview.md      # Seed: product doc
+├── email-01-stockly-pilot-thread.md   # Seed: email thread
+├── email-02-inspectly-medical-thread.md # Seed: sensitive email thread (access-restricted)
+├── requirements.txt                   # Backend dependencies
+├── package.json                       # Frontend dependencies
+└── tsconfig*.json / vite.config.ts    # Frontend build config
+```
+
+---
+
+## 🗺️ Roadmap Ideas
+
+- [ ] Add authentication to the review dashboard
+- [ ] Expand Cedar policies to cover write/merge permissions per role
+- [ ] Add CI workflow to run `run_tests.py` on every PR
+- [ ] Persist branch history for audit trail
+- [ ] Add more seed products/personas to stress-test graph traversal
+
+---
+
+## 📄 License
+
+No license file currently specified — add one (MIT/Apache-2.0 recommended) before treating this as reusable beyond the POC.
