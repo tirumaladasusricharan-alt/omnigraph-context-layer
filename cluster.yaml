@@ -1,0 +1,12 @@
+version: 1
+metadata:
+  name: analytos-brain
+  storage: file://./data
+graphs:
+  knowledge:
+    schema: schema.pg
+    queries: queries/
+    policies:
+      base:
+        file: policy.yaml
+        applies_to: [knowledge]

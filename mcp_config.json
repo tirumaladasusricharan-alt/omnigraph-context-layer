@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "omnigraph-context-layer": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modernrelay/omnigraph-mcp",
+        "--cluster",
+        "../omnigraph-cluster/cluster.yaml"
+      ],
+      "env": {
+        "OMNIGRAPH_ROLE": "This gets dynamically injected by the Agent client (e.g. content-agent or gtm-agent)"
+      }
+    }
+  }
+}

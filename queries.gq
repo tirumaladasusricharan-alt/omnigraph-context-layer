@@ -1,0 +1,35 @@
+query get_products() {
+    match {
+        $p: Product
+    }
+    return {
+        $p.slug,
+        $p.name,
+        $p.description
+    }
+}
+
+query get_product_metrics(product_slug: String) {
+    match {
+        $p: Product { slug: product_slug }
+        $p HAS_FEATURE $f
+        $f PROVEN_BY $m
+    }
+    return {
+        $f.name,
+        $m.metric_name,
+        $m.value,
+        $m.context
+    }
+}
+
+query get_icp_segments() {
+    match {
+        $icp: ICPSegment
+    }
+    return {
+        $icp.slug,
+        $icp.industry,
+        $icp.company_size
+    }
+}

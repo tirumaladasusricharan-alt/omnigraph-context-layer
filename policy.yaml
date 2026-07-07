@@ -1,0 +1,14 @@
+# Omnigraph Cedar Policy Bundle
+policies:
+  content-agent:
+    effect: permit
+    principal: "?principal"
+    action: "?action"
+    resource: "?resource"
+    condition: "principal.role == \"content-agent\" && (resource.type == \"Product\" || resource.type == \"Feature\" || resource.type == \"Metric\")"
+  gtm-agent:
+    effect: permit
+    principal: "?principal"
+    action: "?action"
+    resource: "?resource"
+    condition: "principal.role == \"gtm-agent\""
