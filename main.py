@@ -14,6 +14,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    """Root endpoint."""
+    return {"message": "Analytos Context Layer Backend is running"}
+
 class MergeRequest(BaseModel):
     reviewer_name: str = "Sri Charan Tirumaladasu"
 
